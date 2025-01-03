@@ -77,7 +77,6 @@ while True:
     ally_tower_hp, enemy_tower_hp = screen.get_tower_hp()
     print(ally_tower_hp)
     print(enemy_tower_hp)
-    
 
-
-
+    # test elixir detection
+    print(screen.get_elixir_count())

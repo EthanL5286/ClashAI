@@ -39,6 +39,9 @@ class Screen():
         self.ally_tower_hp_regions = [(1101, 723, 1150, 745), (775, 723, 825, 745), (940, 872, 995, 892)]
         self.enemy_tower_hp_regions = [(1101, 176, 1150, 205), (775, 176, 825, 205), (942, 48, 995, 68)]
 
+        self.elixir_bar_width = 45
+        self.elixir_bar_location = [1244, 1120]
+
     def load_screen_identifiers(self) -> dict[str, MatLike]:
         '''
         Loads the images used to check what screen the player is on
@@ -239,6 +242,30 @@ class Screen():
                     enemy_tower_hp.append(int(hp))
 
         return ally_tower_hp, enemy_tower_hp
+    
+    def get_elixir_count(self) -> int:
+        '''
+        Gets the current elixir count of the player by checking pixel colours in the elixir bar
+
+        Returns:
+            elixir_count: Integer amount of elixir the player has
+        '''
+        # Check pixels from right hand side of elixir bar so start at 10 elixir
+        elixir_count = 10
+
+        # Move back an elixir_bar_width each time we can't detect the players elixir
+        for i in range(0, 10):
+            x = self.elixir_bar_location[0] - (i * self.elixir_bar_width)
+            y = self.elixir_bar_location[1]
+
+            #TODO: Could maybe take a single screenshot and get multiple pixel values at once to improve efficiency
+            # This pixel colour is the background of the elixir bar so if false then we return the elixir amount
+            if pyautogui.pixelMatchesColor(x, y, (5,53,122), tolerance=50):
+                elixir_count -= 1
+            else:
+                return elixir_count
+            
+        return 0
 
     def detect_troops(self) -> list[Results]:
         '''
