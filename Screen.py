@@ -4,6 +4,8 @@ import dxcam
 import numpy as np
 import pyautogui
 import time
+from ultralytics import YOLO
+import easyocr
 
 class Screen():
     '''
@@ -13,11 +15,26 @@ class Screen():
     def __init__(self, region):
         self.region = region
         self.camera = dxcam.create()
+
+        # Image identifiers used to tell what menu screen we are currently looking at
         self.identifiers = self.load_screen_identifiers()
+        # Machine learning model for troop detection
+        self.model = YOLO("troop_detector.pt")
+        # Easyocr text recognition reader
+        self.reader = easyocr.Reader(['en'])
+        # Kernel used for sharpening images for text recognition
+        self.kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
 
         # All menu locations are assuming that the current state is in the shop
         self.shop_location = [20 + region[0], 1080 + region[1]]
         self.collection_location = [260 + region[0], 1080 + region[1]]
+        self.battle_location = [370 + region[0], 1080 + region[1]]
+        self.menu_bar_location = [575 + region[0], 148 + region[1]]
+        self.training_camp_location = [385 + region[0], 397 + region[1]]
+        self.training_camp_ok_location = [435 + region[0], 675 + region[1]]
+
+        self.ally_tower_hp_regions = [(1101, 723, 1150, 745), (775, 723, 825, 745), (940, 872, 995, 892)]
+        self.enemy_tower_hp_regions = [(1101, 176, 1150, 205), (775, 176, 825, 205), (942, 48, 995, 68)]
 
     def load_screen_identifiers(self):
         '''
@@ -37,16 +54,29 @@ class Screen():
 
         return screen_identifiers
     
-    def take_screenshot(self):
+    def take_screenshot(self, region=None):
         '''
         Takes a screenshot of the current game screen and returns the image
 
+        Parameters:
+            region (tuple):
+                The region for the screenshot to be taken, if None then self.region is used
+
         Returns:
             screenshot (np array):
-                Screenshot of the current game screen region determined by self.region
+                Screenshot of the region
         '''
+        screenshot = np.array(None)
 
-        return np.array(self.camera.grab(region=(self.region)))
+        #TODO: Maybe consider just discarding a screenshot if it fails for efficiency
+        while (screenshot is None) or (screenshot.size == 0) or (screenshot.shape == ()):
+
+            if region is None:
+                screenshot = np.array(self.camera.grab(region=(self.region)))
+            else:
+                screenshot = np.array(self.camera.grab(region=(region)))
+
+        return screenshot
     
     def get_menu_screen(self):
         '''
@@ -121,6 +151,20 @@ class Screen():
 
         return deck_info
     
+    def start_training_battle(self):
+        '''
+        Clicks a set of buttons to initiate a training camp battle
+        '''
+        pyautogui.click(self.shop_location)
+        time.sleep(1)
+        pyautogui.click(self.battle_location)
+        time.sleep(1)
+        pyautogui.click(self.menu_bar_location)
+        time.sleep(1)
+        pyautogui.click(self.training_camp_location)
+        time.sleep(1)
+        pyautogui.click(self.training_camp_ok_location)
+    
     def get_cards_in_hand(self, deck_info):
         '''
         Gets the cards in the players hand by matching against images of cards in the players deck
@@ -159,3 +203,71 @@ class Screen():
         cards_in_hand = [name for location, name in sorted_cards_in_hand]
 
         return cards_in_hand
+    
+    def get_tower_hp(self):
+        '''
+        Takes screenshots of each crown tower hp bar and uses easyocr to detect the number values
+
+        Returns:
+            ally_tower_hp List[int]: 
+                List containing each ally tower hp value
+
+            enemy_tower_hp List[int]:
+                List containing each enemy tower hp value
+        '''
+        ally_tower_hp = []
+        enemy_tower_hp = []
+
+        for tower_region in self.ally_tower_hp_regions:
+            screenshot = self.take_screenshot(tower_region)
+            # Change to RGB as easyocr seems to work better in RGB
+            screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
+            # Sharpen the image to pronounce the edges of the numbers
+            screenshot = cv2.filter2D(screenshot, -1, self.kernel)
+
+            # Extract the hp if digits are found
+            text = self.reader.readtext(screenshot)
+            if text:
+                hp = str(text[0][1])
+                if hp.isdigit():
+                    ally_tower_hp.append(int(hp))
+
+        for tower_region in self.enemy_tower_hp_regions:
+            screenshot = self.take_screenshot(tower_region)
+            # Change to RGB as easyocr seems to work better in RGB
+            screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
+            # Sharpen the image to pronounce the edges of the numbers
+            screenshot = cv2.filter2D(screenshot, -1, self.kernel)
+
+            # Extract the hp if digits are found
+            text = self.reader.readtext(screenshot)
+            if text:
+                hp = str(text[0][1])
+                if hp.isdigit():
+                    enemy_tower_hp.append(int(hp))
+
+        return ally_tower_hp, enemy_tower_hp
+
+    def detect_troops(self):
+        '''
+        Takes a screenshot of the current game screen and uses the machine learning model to predict where troops are on the screen
+
+        Returns:
+            results List[ultralytics.engine.results.Results]: 
+                List containing the information for each detected troop
+        '''
+        screenshot = self.take_screenshot()
+        screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
+        results = self.model.predict(source=screenshot, stream=True, conf=0.4, verbose=False)
+
+        return results
+
+        # These comments are left in for future reference about where data is held in the result
+        # for result in results:
+        #     result.show()
+            # print(result.boxes.xywh)
+            # print(result.boxes.cls)
+            # print(result.boxes.cls[0].item())
+            # print(result.boxes.xywh[0].numpy())
+
+            # print("there is a : {} at position: x = {}, y = {}".format(result.names[result.boxes.cls[0].item()], result.boxes.xywh[0][0], result.boxes.xywh[0][1]))
