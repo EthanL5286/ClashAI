@@ -1,5 +1,6 @@
 import os
 import cv2
+from cv2.typing import MatLike
 
 class Cards:
     '''
@@ -9,13 +10,12 @@ class Cards:
     def __init__(self):
         self.card_info = self.load_card_info()
 
-    def load_card_info(self):
+    def load_card_info(self) -> dict[str, MatLike]:
         '''
         Loads the card names and their images ready for matching
 
         Returns:
-            card_info (dict):
-                Dictionary where key is the card name and value is the grayscale image of the card
+            card_info: Dictionary where key is the card name and value is the grayscale image of the card
         '''
 
         card_info = {}
