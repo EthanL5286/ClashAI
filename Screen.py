@@ -1,10 +1,13 @@
 import os
 import cv2
+from cv2.typing import MatLike
 import dxcam
 import numpy as np
+from numpy.typing import NDArray
 import pyautogui
 import time
 from ultralytics import YOLO
+from ultralytics.engine.results import Results
 import easyocr
 
 class Screen():
@@ -12,7 +15,7 @@ class Screen():
     Class that controls everything to do with detecting images on the screen and details about the screen
     '''
 
-    def __init__(self, region):
+    def __init__(self, region: tuple[int, int, int, int]):
         self.region = region
         self.camera = dxcam.create()
 
@@ -36,13 +39,12 @@ class Screen():
         self.ally_tower_hp_regions = [(1101, 723, 1150, 745), (775, 723, 825, 745), (940, 872, 995, 892)]
         self.enemy_tower_hp_regions = [(1101, 176, 1150, 205), (775, 176, 825, 205), (942, 48, 995, 68)]
 
-    def load_screen_identifiers(self):
+    def load_screen_identifiers(self) -> dict[str, MatLike]:
         '''
         Loads the images used to check what screen the player is on
 
         Returns:
-            screen_identifiers (dict):
-                Dictionary where key is the screen name and value is the image of the screen identifier
+            screen_identifiers: Dictionary where key is the screen name and value is the image of the screen identifier
         '''
 
         screen_identifiers = {}
@@ -54,17 +56,15 @@ class Screen():
 
         return screen_identifiers
     
-    def take_screenshot(self, region=None):
+    def take_screenshot(self, region: tuple[int, int, int, int] | None = None) -> NDArray:
         '''
         Takes a screenshot of the current game screen and returns the image
 
         Parameters:
-            region (tuple):
-                The region for the screenshot to be taken, if None then self.region is used
+            region: The region for the screenshot to be taken, if None then self.region is used
 
         Returns:
-            screenshot (np array):
-                Screenshot of the region
+            screenshot: Screenshot of the region
         '''
         screenshot = np.array(None)
 
@@ -78,13 +78,12 @@ class Screen():
 
         return screenshot
     
-    def get_menu_screen(self):
+    def get_menu_screen(self) -> str:
         '''
         Gets the menu screen that the player is currently looking at
 
         Returns:
-            menu_screen (str):
-                The name of the current menu on screen  
+            menu_screen: The name of the current menu on screen  
         '''
 
         menu_screen = "undefined"
@@ -101,19 +100,16 @@ class Screen():
 
         return menu_screen
     
-    def get_deck_info(self, menu_screen, card_info):
+    def get_deck_info(self, menu_screen: str, card_info: dict[str, MatLike]) -> dict[str, MatLike]:
         '''
         Gets the deck the player is using by navigating to the deck screen and matching card images against it
 
         Parameters:
-            menu_screen (str):
-                Name of the current menu screen the player is on
-            card_info (dict):
-                Dictionary where key is the card name and value is the card image
+            menu_screen: Name of the current menu screen the player is on
+            card_info: Dictionary where key is the card name and value is the card image
 
         Returns:
-            deck_info (dict):
-                Subset of the card images dictionary only containing cards in the current players deck 
+            deck_info: Subset of the card info dictionary only containing cards in the current players deck 
         
         '''
         deck_info = {}
@@ -165,17 +161,15 @@ class Screen():
         time.sleep(1)
         pyautogui.click(self.training_camp_ok_location)
     
-    def get_cards_in_hand(self, deck_info):
+    def get_cards_in_hand(self, deck_info: dict[str, MatLike]) -> list[str]:
         '''
         Gets the cards in the players hand by matching against images of cards in the players deck
         
         Parameters: 
-            deck_info (dict): 
-                Dictionary where key is the card name and value is the card image
+            deck_info: Dictionary where key is the card name and value is the card image
 
         Returns:
-            cards_in_hand (array):
-                Array of strings relating to the cards in the players hand from left to right
+            cards_in_hand: Array of strings relating to the cards in the players hand from left to right
         
         '''
         cards_in_hand = []
@@ -204,16 +198,14 @@ class Screen():
 
         return cards_in_hand
     
-    def get_tower_hp(self):
+    def get_tower_hp(self) -> tuple[list[int], list[int]]:
         '''
         Takes screenshots of each crown tower hp bar and uses easyocr to detect the number values
 
         Returns:
-            ally_tower_hp List[int]: 
-                List containing each ally tower hp value
+            ally_tower_hp: List containing each ally tower hp value
 
-            enemy_tower_hp List[int]:
-                List containing each enemy tower hp value
+            enemy_tower_hp: List containing each enemy tower hp value
         '''
         ally_tower_hp = []
         enemy_tower_hp = []
@@ -248,13 +240,12 @@ class Screen():
 
         return ally_tower_hp, enemy_tower_hp
 
-    def detect_troops(self):
+    def detect_troops(self) -> list[Results]:
         '''
         Takes a screenshot of the current game screen and uses the machine learning model to predict where troops are on the screen
 
         Returns:
-            results List[ultralytics.engine.results.Results]: 
-                List containing the information for each detected troop
+            results: List containing the information for each detected troop
         '''
         screenshot = self.take_screenshot()
         screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
