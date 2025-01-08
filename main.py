@@ -1,7 +1,9 @@
 import pygetwindow as gw
+import time
 
 from Screen import Screen
 from Cards import Cards
+from AI import AI
 
 # Search for any windows open with Clash Royale in the title
 game_window_list = gw.getWindowsWithTitle('Clash Royale')
@@ -35,6 +37,7 @@ except:
 game_window_region = (game_window.left, game_window.top, (game_window.left + game_window.width), (game_window.top + game_window.height))
 screen = Screen(game_window_region)
 cards = Cards()
+ai = AI()
 
 # Get the current menu screen which can be used to get the current players deck
 menu_screen = screen.get_menu_screen()
@@ -79,4 +82,9 @@ while True:
     print(enemy_tower_hp)
 
     # test elixir detection
-    print(screen.get_elixir_count())
+    elixir = screen.get_elixir_count()
+    print(elixir)
+
+    if elixir == 10:
+        ai.make_random_move()
+        time.sleep(1)
