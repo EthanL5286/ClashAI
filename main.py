@@ -46,7 +46,22 @@ deck_info = screen.get_deck_info(menu_screen, cards.card_info)
 # Start a training battle for testing purposes
 screen.start_training_battle()
 
-ready = input("press enter when ready")
+start_time = time.time()
+# A game lasts 180 seconds if it does not go to overtime
+game_time = 180
+# Overtime lasts 120 seconds if game is not decisive
+overtime_time = 120
+
+# Expected game end times
+end_time = start_time + game_time
+overtime_end_time = end_time + overtime_time
+
+# Initially we are not in overtime and game is not finished
+overtime = False
+game_over = False
+
+# Sleep until the cards are actually shown on screen
+time.sleep(8)
 
 # Getting the players current hand will only be done at the start of the match
 # After this tracking of the card cycle can be done manually to prevent the need for more screenshots
@@ -59,7 +74,7 @@ for card in cards_in_hand:
 
 print(cards_in_hand)
 
-while True:
+while not game_over:
     found_troops = screen.detect_troops()
 
     ally_troop_stats = []
@@ -104,9 +119,24 @@ while True:
     elixir = screen.get_elixir_count()
     print(elixir)
 
+    if overtime == False:
+        # time remaining in game
+        time_remaining = end_time - time.time()
+        # Check if we are in overtime
+        if time_remaining <= 0:
+            overtime = True
+
+    else:
+        # time remaining in overtime
+        time_remaining = overtime_end_time - time.time()
+    
+    print(time_remaining)
+
     # Data to pass into AI: ally_troop_stats, ally_tower_hp, enemy_troop_stats, enemy_tower_hp, time_remaining, elixir, cards_in_hand_stats
     # Data output: integer 0-3 indicating card to select in current hand, x and y coordinates
 
     if elixir == 10:
         ai.make_random_move()
         time.sleep(1)
+
+    game_over = screen.game_over_check()
