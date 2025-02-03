@@ -51,29 +51,48 @@ ready = input("press enter when ready")
 # Getting the players current hand will only be done at the start of the match
 # After this tracking of the card cycle can be done manually to prevent the need for more screenshots
 cards_in_hand = screen.get_cards_in_hand(deck_info)
+
+# Get the card stats of the players starting hand
+cards_in_hand_stats = []
+for card in cards_in_hand:
+    cards_in_hand_stats.append(cards.get_card_stats(card))
+
 print(cards_in_hand)
 
 while True:
     found_troops = screen.detect_troops()
 
-    ally_troops = []
-    enemy_troops = []
+    ally_troop_stats = []
+    enemy_troop_stats = []
 
     for result in found_troops:
+        # Extract x,y coordinates and troop name from results
         for i in range(0, len(result.boxes.cls)):
             x = round(result.boxes.xywh[i][0].item()) + round(result.boxes.xywh[i][2].item() / 2)
             y = round(result.boxes.xywh[i][1].item()) + round(result.boxes.xywh[i][3].item() / 2)
             troop_name = str(result.names[result.boxes.cls[i].item()])
-
             troop_type = troop_name.split("_")[0]
+
             if troop_type == "ally":
-                ally_troops.append([troop_name, x, y])
+                # Remove ally_ prefix
+                troop_name = troop_name[5:]
+
+                # Create troop_stats array and append to ally_troop_stats
+                troop_stats = cards.get_troop_stats(troop_name)
+                troop_stats.append(x)
+                troop_stats.append(y)
+                ally_troop_stats.append(troop_stats)
+
 
             elif troop_type == "enemy":
-                enemy_troops.append([troop_name, x, y])
+                # Remove enemy_ prefix
+                troop_name = troop_name[6:]
 
-        print(ally_troops)
-        print(enemy_troops)
+                # Create troop_stats array and append to enemy_troop_stats
+                troop_stats = cards.get_troop_stats(troop_name)
+                troop_stats.append(x)
+                troop_stats.append(y)
+                enemy_troop_stats.append(troop_stats)
 
 
     # test tower hp detection
@@ -84,6 +103,9 @@ while True:
     # test elixir detection
     elixir = screen.get_elixir_count()
     print(elixir)
+
+    # Data to pass into AI: ally_troop_stats, ally_tower_hp, enemy_troop_stats, enemy_tower_hp, time_remaining, elixir, cards_in_hand_stats
+    # Data output: integer 0-3 indicating card to select in current hand, x and y coordinates
 
     if elixir == 10:
         ai.make_random_move()
