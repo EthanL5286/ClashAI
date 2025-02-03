@@ -103,6 +103,23 @@ class Screen():
 
         return menu_screen
     
+    def game_over_check(self) -> bool:
+        '''
+        Checks if the game has ended or is still being played
+
+        Returns: True if the game is over and False if the game is ongoing
+        '''
+        screenshot = self.take_screenshot()
+        gray_screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+
+        result = cv2.matchTemplate(gray_screenshot, self.identifiers["mid_battle"], cv2.TM_CCOEFF_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+        if max_val >= 0.8:
+            # Game is still being played 
+            return False
+        else:
+            return True
+    
     def get_deck_info(self, menu_screen: str, card_info: dict[str, MatLike]) -> dict[str, MatLike]:
         '''
         Gets the deck the player is using by navigating to the deck screen and matching card images against it
@@ -163,6 +180,8 @@ class Screen():
         pyautogui.click(self.training_camp_location)
         time.sleep(1)
         pyautogui.click(self.training_camp_ok_location)
+        # Final sleep to synchronise the game clock with the timer I use
+        time.sleep(1)
     
     def get_cards_in_hand(self, deck_info: dict[str, MatLike]) -> list[str]:
         '''
