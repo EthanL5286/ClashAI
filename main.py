@@ -140,3 +140,14 @@ while not game_over:
         time.sleep(1)
 
     game_over = screen.game_over_check()
+
+# Wait until final screen animation finishes
+time.sleep(8)
+
+# Check which player won
+winner = screen.game_winner_check()
+if winner:
+    print("Player won the game")
+
+else:
+    print("Player lost the game")

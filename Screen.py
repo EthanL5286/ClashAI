@@ -119,6 +119,24 @@ class Screen():
             return False
         else:
             return True
+        
+    def game_winner_check(self) -> bool:
+        '''
+        Checks which player has won the game
+
+        Returns: True if the player has won the game and False if the opponent has won the game
+        '''
+        screenshot = self.take_screenshot()
+        gray_screenshot = cv2.cvtColor(screenshot, cv2.COLOR_BGR2GRAY)
+
+        result = cv2.matchTemplate(gray_screenshot, self.identifiers["winner_screen"], cv2.TM_CCOEFF_NORMED)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+
+        # If match is at a y value of less than 200 then opponent won
+        if max_loc[1] <= 200: 
+            return False
+        else:
+            return True
     
     def get_deck_info(self, menu_screen: str, card_info: dict[str, MatLike]) -> dict[str, MatLike]:
         '''
