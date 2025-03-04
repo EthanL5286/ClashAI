@@ -49,7 +49,7 @@ class Cards:
                 float(stats["speed"]), float(stats["melee_range"]), float(stats["range"]), float(stats["targets"]), float(stats["flying"]), 
                 float(stats["spell"]), float(stats["spell_radius"]), float(stats["troop_count"]), float(stats["elixir"])]
     
-    def get_troop_stats(self, troop_name: str) -> list[float]:
+    def get_troop_stats(self, troop_name: str) -> list[float] | None:
         '''
         Gets the troop stats from the troop_stats.json such as hp and direct damage
 
@@ -60,7 +60,10 @@ class Cards:
             troop_stats: A list of float values for each stat of the troop
         
         '''
-        stats = self.troop_stats[troop_name]
+        if troop_name in self.troop_stats:
+            stats = self.troop_stats[troop_name]
+        else:
+            return None
 
         return [float(stats["hp"]), float(stats["direct_damage"]), float(stats["splash_damage"]), float(stats["hit_speed"]), 
                 float(stats["speed"]), float(stats["melee_range"]), float(stats["range"]), float(stats["targets"]), float(stats["flying"]), 

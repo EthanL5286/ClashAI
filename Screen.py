@@ -35,6 +35,7 @@ class Screen():
         self.menu_bar_location = [575 + region[0], 148 + region[1]]
         self.training_camp_location = [385 + region[0], 397 + region[1]]
         self.training_camp_ok_location = [435 + region[0], 675 + region[1]]
+        self.leave_game_location = [950, 1000]
 
         self.ally_tower_hp_regions = [(1101, 723, 1150, 745), (775, 723, 825, 745), (940, 872, 995, 892)]
         self.enemy_tower_hp_regions = [(1101, 176, 1150, 205), (775, 176, 825, 205), (942, 48, 995, 68)]
@@ -200,6 +201,13 @@ class Screen():
         pyautogui.click(self.training_camp_ok_location)
         # Final sleep to synchronise the game clock with the timer I use
         time.sleep(1)
+
+    def leave_game(self):
+        '''
+        Ends a game by clicking the OK button when finished
+        '''
+        pyautogui.click(950, 1000)
+        time.sleep(4)
     
     def get_cards_in_hand(self, deck_info: dict[str, MatLike]) -> list[str]:
         '''
@@ -234,7 +242,20 @@ class Screen():
                 
         # Sort the cards based on their x location to get cards in order of left to right
         sorted_cards_in_hand = sorted(cards_in_hand, key=lambda x: x[0][0])
-        cards_in_hand = [name for location, name in sorted_cards_in_hand]
+
+        # Create empty array so if cards are not found then an empty card is in their place
+        cards_in_hand = ["empty", "empty", "empty", "empty"]
+
+        # Replace empty with card name for the cards that are found
+        for card in sorted_cards_in_hand:
+            if card[0][0] > 150 and card[0][0] < 200:
+                cards_in_hand[0] = card[1] 
+            elif card[0][0] > 250 and card[0][0] < 300:
+                cards_in_hand[1] = card[1]
+            elif card[0][0] > 375 and card[0][0] < 425:
+                cards_in_hand[2] = card[1]
+            elif card[0][0] > 500 and card[0][0] < 550:
+                cards_in_hand[3] = card[1]
 
         return cards_in_hand
     
@@ -263,6 +284,10 @@ class Screen():
                 hp = str(text[0][1])
                 if hp.isdigit():
                     ally_tower_hp.append(int(hp))
+                else:
+                    ally_tower_hp.append(0)
+            else:
+                ally_tower_hp.append(0)
 
         for tower_region in self.enemy_tower_hp_regions:
             screenshot = self.take_screenshot(tower_region)
@@ -277,6 +302,17 @@ class Screen():
                 hp = str(text[0][1])
                 if hp.isdigit():
                     enemy_tower_hp.append(int(hp))
+                else:
+                    enemy_tower_hp.append(0)
+            else:
+                enemy_tower_hp.append(0)
+
+
+        # If king tower has 0 hp then set it to max as it is not activated yet
+        if ally_tower_hp[2] == 0:
+            ally_tower_hp[2] = 2400
+        if enemy_tower_hp[2] == 0:
+            enemy_tower_hp[2] = 2568
 
         return ally_tower_hp, enemy_tower_hp
     

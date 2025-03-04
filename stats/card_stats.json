@@ -1,4 +1,19 @@
 {
+    "empty": {
+        "hp": "0",
+        "direct_damage": "0",
+        "splash_damage": "0",
+        "hit_speed": "0",
+        "speed": "0",
+        "melee_range": "0",
+        "range": "0",
+        "targets": "0",
+        "flying": "0",
+        "spell": "0",
+        "spell_radius": "0",
+        "troop_count": "0",
+        "elixir": "0"
+    },
     "knight": {
         "hp": "1766",
         "direct_damage": "202",

@@ -4,6 +4,11 @@ import time
 from Screen import Screen
 from Cards import Cards
 from AI import AI
+from ClashRoyaleEnv import ClashRoyaleEnv
+from stable_baselines3.common import env_checker
+from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback
+import os
 
 # Search for any windows open with Clash Royale in the title
 game_window_list = gw.getWindowsWithTitle('Clash Royale')
@@ -38,116 +43,55 @@ game_window_region = (game_window.left, game_window.top, (game_window.left + gam
 screen = Screen(game_window_region)
 cards = Cards()
 ai = AI()
+env = ClashRoyaleEnv(ai, cards, screen)
 
-# Get the current menu screen which can be used to get the current players deck
-menu_screen = screen.get_menu_screen()
-deck_info = screen.get_deck_info(menu_screen, cards.card_info)
+class TrainAndLoggingCallback(BaseCallback):
 
-# Start a training battle for testing purposes
-screen.start_training_battle()
+    def __init__(self, check_freq, save_path, verbose=1):
+        super(TrainAndLoggingCallback, self).__init__(verbose)
+        self.check_freq = check_freq
+        self.save_path = save_path
 
-start_time = time.time()
-# A game lasts 180 seconds if it does not go to overtime
-game_time = 180
-# Overtime lasts 120 seconds if game is not decisive
-overtime_time = 120
+    def _init_callback(self):
+        if self.save_path is not None:
+            os.makedirs(self.save_path, exist_ok=True)
 
-# Expected game end times
-end_time = start_time + game_time
-overtime_end_time = end_time + overtime_time
+    def _on_step(self):
+        if self.n_calls % self.check_freq == 0:
+            model_path = os.path.join(self.save_path, 'best_model_{}'.format(self.n_calls))
+            self.model.save(model_path)
 
-# Initially we are not in overtime and game is not finished
-overtime = False
-game_over = False
+        return True
+CHECKPOINT_DIR = './train/'
+LOG_DIR = './logs/'
+callback = TrainAndLoggingCallback(check_freq=10000, save_path=CHECKPOINT_DIR)
 
-# Sleep until the cards are actually shown on screen
-time.sleep(8)
+model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=LOG_DIR)
+model.learn(total_timesteps=100000, callback=callback)  # Train for 100k steps
 
-# Getting the players current hand will only be done at the start of the match
-# After this tracking of the card cycle can be done manually to prevent the need for more screenshots
-cards_in_hand = screen.get_cards_in_hand(deck_info)
+# model = PPO.load("./train/best_model_100000", env=env)
 
-# Get the card stats of the players starting hand
-cards_in_hand_stats = []
-for card in cards_in_hand:
-    cards_in_hand_stats.append(cards.get_card_stats(card))
+# # Run a Trained AI Match
+# obs, _ = env.reset()
+# terminated = False
+# total_reward = 0
+# while not terminated:
+#     action, _states = model.predict(obs)
+#     obs, reward, terminated, truncated, info = env.step(action)
+#     total_reward += reward
+#     print(f"Action: {action}, Reward: {reward}")
 
-print(cards_in_hand)
+# # Wait until final screen animation finishes
+# time.sleep(8)
 
-while not game_over:
-    found_troops = screen.detect_troops()
+# # Check which player won
+# winner = screen.game_winner_check()
+# if winner:
+#     print("Player won the game")
+#     total_reward += 10000
 
-    ally_troop_stats = []
-    enemy_troop_stats = []
+# else:
+#     print("Player lost the game")
+#     total_reward -= 10000
 
-    for result in found_troops:
-        # Extract x,y coordinates and troop name from results
-        for i in range(0, len(result.boxes.cls)):
-            x = round(result.boxes.xywh[i][0].item()) + round(result.boxes.xywh[i][2].item() / 2)
-            y = round(result.boxes.xywh[i][1].item()) + round(result.boxes.xywh[i][3].item() / 2)
-            troop_name = str(result.names[result.boxes.cls[i].item()])
-            troop_type = troop_name.split("_")[0]
-
-            if troop_type == "ally":
-                # Remove ally_ prefix
-                troop_name = troop_name[5:]
-
-                # Create troop_stats array and append to ally_troop_stats
-                troop_stats = cards.get_troop_stats(troop_name)
-                troop_stats.append(x)
-                troop_stats.append(y)
-                ally_troop_stats.append(troop_stats)
-
-
-            elif troop_type == "enemy":
-                # Remove enemy_ prefix
-                troop_name = troop_name[6:]
-
-                # Create troop_stats array and append to enemy_troop_stats
-                troop_stats = cards.get_troop_stats(troop_name)
-                troop_stats.append(x)
-                troop_stats.append(y)
-                enemy_troop_stats.append(troop_stats)
-
-
-    # test tower hp detection
-    ally_tower_hp, enemy_tower_hp = screen.get_tower_hp()
-    print(ally_tower_hp)
-    print(enemy_tower_hp)
-
-    # test elixir detection
-    elixir = screen.get_elixir_count()
-    print(elixir)
-
-    if overtime == False:
-        # time remaining in game
-        time_remaining = end_time - time.time()
-        # Check if we are in overtime
-        if time_remaining <= 0:
-            overtime = True
-
-    else:
-        # time remaining in overtime
-        time_remaining = overtime_end_time - time.time()
-    
-    print(time_remaining)
-
-    # Data to pass into AI: ally_troop_stats, ally_tower_hp, enemy_troop_stats, enemy_tower_hp, time_remaining, elixir, cards_in_hand_stats
-    # Data output: integer 0-3 indicating card to select in current hand, x and y coordinates
-
-    if elixir == 10:
-        ai.make_random_move()
-        time.sleep(1)
-
-    game_over = screen.game_over_check()
-
-# Wait until final screen animation finishes
-time.sleep(8)
-
-# Check which player won
-winner = screen.game_winner_check()
-if winner:
-    print("Player won the game")
-
-else:
-    print("Player lost the game")
+# print(f"Total reward: {total_reward}")

@@ -3,7 +3,7 @@ import random
 
 class AI:
     '''
-    The AI for the clash bot
+    The agent that interacts with the game
     '''
 
     def __init__(self):
@@ -29,16 +29,24 @@ class AI:
 
             y: Y coordinate of where to play the card
         '''
+
+        # AI has chosen to do nothing
+        if card == 0:
+            return
+        
+        # Make card point to correct index
+        card -= 1
+        # Perform the action
         pyautogui.click(self.card_locations[card])
-        pyautogui.click(x, y)
+        pyautogui.click(x + self.board_left, y + self.board_top)
 
     def make_random_move(self):
         '''
         Makes a random move for testing
         '''
 
-        card = random.randint(0, 3)
-        x = random.randint(self.board_left, self.board_right)
-        y = random.randint(self.board_middle, self.board_bottom)
+        card = random.randint(0, 4)
+        x = random.randint(0, self.board_right - self.board_left)
+        y = random.randint(0, self.board_bottom - self.board_top)
 
         self.make_move(card, x, y)
