@@ -133,11 +133,11 @@ class Screen():
         result = cv2.matchTemplate(gray_screenshot, self.identifiers["winner_screen"], cv2.TM_CCOEFF_NORMED)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 
-        # If match is at a y value of less than 200 then opponent won
-        if max_loc[1] <= 200: 
-            return False
-        else:
+        # If match is at a y value of greater than 200 then player won
+        if max_loc[1] > 200: 
             return True
+        else:
+            return False
     
     def get_deck_info(self, menu_screen: str, card_info: dict[str, MatLike]) -> dict[str, MatLike]:
         '''
@@ -206,7 +206,7 @@ class Screen():
         '''
         Ends a game by clicking the OK button when finished
         '''
-        pyautogui.click(950, 1000)
+        pyautogui.click(self.leave_game_location)
         time.sleep(4)
     
     def get_cards_in_hand(self, deck_info: dict[str, MatLike]) -> list[str]:
